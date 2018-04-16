@@ -67,7 +67,7 @@ public class ApkComparator {
 			dexComparator.compare(oldDexList, newDexList);
 			
 		} catch (Exception e) {
-			
+			System.out.printf(e.getMessage());
 		} finally{
 			try {
 				if(oldApkZipFile != null)
