@@ -4,9 +4,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import com.github.wkigen.epimetheus.dex.Annotation;
 import com.github.wkigen.epimetheus.dex.ClassDef;
 import com.github.wkigen.epimetheus.dex.Dex;
 import com.github.wkigen.epimetheus.dex.TableOfContents;
+import org.jf.dexlib2.dexbacked.util.AnnotationsDirectory;
 
 public class DexComparator {
 
@@ -26,6 +28,12 @@ public class DexComparator {
         if(!oldDex.strings().get(oldSourceFileIndex).equals(newDex.strings().get(newSourceFileIndex)))
             return false;
 
+        int oldAnnotationOffset = oldClassDef.getAnnotationsOffset();
+        int newAnnotationOffset = newClassDef.getAnnotationsOffset();
+        Annotation oldAnnotations = oldDex.open(oldAnnotationOffset).readAnnotation();
+        Annotation newAnnotations = newDex.open(newAnnotationOffset).readAnnotation();
+
+
 	    return true;
     }
 	
@@ -41,8 +49,9 @@ public class DexComparator {
                         if (oldDesc.equals(newDesc)){
                             if (!compareClassDef(oldDex,newDex,oldClassDef,newClassDef)){
                                 changeClassList.add(new DexClassInfo(newDex,newClassDef));
-                                break;
                             }
+                            isFind = true;
+                            break;
                         }
                     }
                     if (!isFind)
