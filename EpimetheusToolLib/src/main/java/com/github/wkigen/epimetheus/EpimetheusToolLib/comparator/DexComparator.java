@@ -1,113 +1,266 @@
 package com.github.wkigen.epimetheus.EpimetheusToolLib.comparator;
 
+import com.sun.org.apache.bcel.internal.generic.IF_ACMPEQ;
+import org.jf.dexlib2.DexFileFactory;
+import org.jf.dexlib2.dexbacked.*;
+import org.jf.dexlib2.iface.Annotation;
+
+import java.io.File;
+import java.util.ArrayList;
 import java.util.HashSet;
+
 import java.util.List;
 import java.util.Set;
 
-import com.github.wkigen.epimetheus.dex.*;
-import org.jf.dexlib2.dexbacked.util.AnnotationsDirectory;
 
 public class DexComparator {
 
     private final Set<DexClassInfo> changeClassList = new HashSet<>();
 
 	public DexComparator() {
-		
+
 	}
 
-	private boolean compareClassDef(Dex oldDex,Dex newDex,ClassDef oldClassDef,ClassDef newClassDef){
+	private Set<DexBackedDexFile> changeDex(List<File> dexFileList){
+        Set<DexBackedDexFile> dexBackedDexFiles = new HashSet<>();
+        try {
+            for (File file : dexFileList){
+                dexBackedDexFiles.add(DexFileFactory.loadDexFile(file,26));
+            }
+        }catch (Exception e){
 
- 	    if (oldClassDef.getAccessFlags() != newClassDef.getAccessFlags())
-	        return false;
+        }
+        return dexBackedDexFiles;
+    }
 
-        int oldSourceFileIndex = oldClassDef.getSourceFileIndex();
-        int newSourceFileIndex = newClassDef.getSourceFileIndex();
-        if(!oldDex.strings().get(oldSourceFileIndex).equals(newDex.strings().get(newSourceFileIndex)))
+
+    public boolean isSameClassDef(DexBackedClassDef oldClassDef,DexBackedClassDef newClassDef){
+
+        if (!oldClassDef.getType().equals(newClassDef.getType()))
             return false;
 
-        int oldAnnotationOffset = oldClassDef.getAnnotationsOffset();
-        int newAnnotationOffset = newClassDef.getAnnotationsOffset();
-        Annotation oldAnnotations = oldDex.open(oldAnnotationOffset).readAnnotation();
-        Annotation newAnnotations = newDex.open(newAnnotationOffset).readAnnotation();
-        if(oldAnnotations.compareTo(newAnnotations) != 0)
+        if (!oldClassDef.getSuperclass().equals(newClassDef.getSuperclass()))
             return false;
 
-        if (oldClassDef.getClassDataOffset() != 0 && newClassDef.getClassDataOffset() != 0){
-            ClassData oldClassData = oldDex.readClassData(oldClassDef);
-            ClassData newClassData = newDex.readClassData(newClassDef);
+        if(oldClassDef.getAccessFlags() != newClassDef.getAccessFlags())
+            return false;
 
-            ClassData.Field[] oldFields = oldClassData.allFields();
-            ClassData.Field[] newFields = newClassData.allFields();
-            if (oldFields.length != newFields.length)
-                return false;
-            for (ClassData.Field newField : newFields){
-                boolean isSame = false;
-                for (ClassData.Field oldField : oldFields){
-                    if (newField.getFieldIndex() == oldField.getFieldIndex()
-                            && newField.getAccessFlags() == oldField.getAccessFlags()){
-                        isSame = true;
-                    }
-                }
-                if (!isSame)
-                    return false;
-            }
+        if (!isSameInterfaces(oldClassDef.getInterfaces(),newClassDef.getInterfaces()))
+            return false;
 
-            ClassData.Method[] oldMethods = oldClassData.allMethods();
-            ClassData.Method[] newMethods = newClassData.allMethods();
-            if (oldMethods.length != newMethods.length)
+        if (!isSameFields(oldClassDef.getFields(),newClassDef.getFields()))
+            return false;
+
+
+        if (!isSameMethods(oldClassDef.getDirectMethods(),newClassDef.getDirectMethods()))
+            return false;
+
+        if (!isSameMethods(oldClassDef.getVirtualMethods(),newClassDef.getVirtualMethods()))
+            return false;
+
+        return true;
+    }
+
+    public boolean isSameInterfaces(List<String> oldInterface,List<String> newInterface) {
+        if(oldInterface.size() != newInterface.size())
+            return false;
+
+        for (int i = 0 ;i < oldInterface.size();i++){
+            if (!oldInterface.get(i).equals(newInterface.get(i)))
                 return false;
-            for (ClassData.Method newMethod:newMethods){
-                boolean isSame = false;
-                for (ClassData.Method oldMethod:oldMethods){
-                    if (oldMethod.getMethodIndex() == newMethod.getMethodIndex() &&
-                            oldMethod.getAccessFlags() == newMethod.getAccessFlags() ){
-//                        Code oldCode = oldDex.readCode(oldMethod);
-//                        Code newCode = oldDex.readCode(newMethod);
-                        isSame = true;
-                    }
-                }
-                if (!isSame)
-                    return false;
-            }
+        }
+	    return true;
+    }
+
+    public boolean isSameFields(Iterable<? extends DexBackedField> oldFieldsIter,Iterable<? extends DexBackedField> newFieldsIter) {
+
+        List<DexBackedField> oldFields = new ArrayList<>();
+        List<DexBackedField> newFields = new ArrayList<>();
+
+        for (DexBackedField newField : oldFieldsIter){
+            oldFields.add(newField);
+        }
+        for (DexBackedField newField : newFieldsIter){
+            newFields.add(newField);
+        }
+
+        if (oldFields.size() != newFields.size())
+            return false;
+
+        for (int i = 0;i < oldFields.size();i++){
+            if (!isSameField(oldFields.get(i),newFields.get(i)))
+                return false;
         }
 
 	    return true;
     }
-	
-	public boolean compare(List<Dex> oldDexList,List<Dex> newDexList) {
-        int count = 0;
-	    for (Dex newDex : newDexList){
-	        for (ClassDef newClassDef : newDex.classDefs()){
-                count++;
-	            boolean isFind = false;
-                for (Dex oldDex : oldDexList){
-                    for (ClassDef oldClassDef : newDex.classDefs()) {
-                        String oldDesc = oldDex.typeNames().get(oldClassDef.getTypeIndex());
-                        String newDesc = newDex.typeNames().get(newClassDef.getTypeIndex());
-                        if (oldDesc.equals(newDesc)){
-                            if (!compareClassDef(oldDex,newDex,oldClassDef,newClassDef)){
-                                changeClassList.add(new DexClassInfo(newDex,newClassDef));
-                            }
-                            isFind = true;
-                            break;
-                        }
-                    }
-                    if (!isFind)
-                        changeClassList.add(new DexClassInfo(newDex,newClassDef));
+
+    public boolean isSameField(DexBackedField oldField,DexBackedField newField) {
+
+	    if (!oldField.getType().equals(newField.getType()))
+	        return false;
+
+        if (oldField.getAccessFlags() != newField.getAccessFlags())
+            return false;
+
+        if (!oldField.getName().equals(newField.getName()))
+            return false;
+
+        if (!isSameAnnotations(oldField.getAnnotations(),newField.getAnnotations()))
+            return false;
+
+	    return true;
+    }
+
+
+    public boolean isSameAnnotations(Set<? extends Annotation> oldAnnotationSet, Set<? extends Annotation> newAnnotationSet) {
+
+        List<DexBackedAnnotation> oldAnnotations = new ArrayList<>();
+        List<DexBackedAnnotation> newAnnotations = new ArrayList<>();
+
+        for (Annotation annotation : oldAnnotationSet){
+            oldAnnotations.add((DexBackedAnnotation)annotation);
+        }
+        for (Annotation annotation : newAnnotationSet){
+            newAnnotations.add((DexBackedAnnotation)annotation);
+        }
+
+        if (oldAnnotations.size() != newAnnotations.size())
+            return false;
+
+        for (int i = 0; i < oldAnnotations.size();i++){
+           if (!isSameAnnotation(oldAnnotations.get(i),newAnnotations.get(i)))
+               return false;
+        }
+
+	    return true;
+    }
+
+    public boolean isSameAnnotation(DexBackedAnnotation oldAnnotation, DexBackedAnnotation newAnnotation) {
+
+	    if (!oldAnnotation.getType().equals(newAnnotation.getType()))
+	        return false;
+
+        if (oldAnnotation.getVisibility() != newAnnotation.getVisibility())
+            return false;
+
+        if (!isSameAnnotationElements(oldAnnotation.getElements(),newAnnotation.getElements()))
+            return false;
+
+	    return true;
+    }
+
+    public boolean isSameAnnotationElements(Set<? extends DexBackedAnnotationElement> oldAnnotationEmentSet, Set<? extends DexBackedAnnotationElement> newAnnotationEmentSet) {
+        List<DexBackedAnnotationElement> oldAnnotationElements = new ArrayList<>();
+        List<DexBackedAnnotationElement> newAnnotationElements = new ArrayList<>();
+
+        for (DexBackedAnnotationElement element : oldAnnotationEmentSet){
+            oldAnnotationElements.add(element);
+        }
+        for (DexBackedAnnotationElement element : newAnnotationEmentSet){
+            newAnnotationElements.add(element);
+        }
+
+        if (oldAnnotationElements.size() != newAnnotationElements.size())
+            return false;
+
+        for (int i = 0;i < oldAnnotationElements.size() ;i++){
+            if (!isSameAnnotationElement(oldAnnotationElements.get(i),newAnnotationElements.get(i)))
+                return false;
+        }
+
+	    return true;
+    }
+
+    public boolean isSameAnnotationElement(DexBackedAnnotationElement oldAnnotationEment,DexBackedAnnotationElement newAnnotationEment) {
+
+	    if (!oldAnnotationEment.getName().equals(newAnnotationEment.getName()))
+	        return false;
+        if (oldAnnotationEment.getValue().getValueType() != newAnnotationEment.getValue().getValueType())
+            return false;
+
+	    return true;
+    }
+
+    public boolean isSameMethods(Iterable<? extends DexBackedMethod> oldMethodSet,Iterable<? extends DexBackedMethod> newMethodSet) {
+        List<DexBackedMethod> oldMethods = new ArrayList<>();
+        List<DexBackedMethod> newMethods = new ArrayList<>();
+
+        for (DexBackedMethod method : oldMethodSet){
+            oldMethods.add(method);
+        }
+        for (DexBackedMethod method : newMethodSet){
+            newMethods.add(method);
+        }
+
+        if (oldMethods.size() != newMethods.size())
+            return false;
+
+        for (int i = 0;i <oldMethods.size();i++){
+            if (!isSameMethod(oldMethods.get(i),newMethods.get(i)))
+                return false;
+        }
+	    return true;
+    }
+
+    public boolean isSameMethod(DexBackedMethod oldMethod,DexBackedMethod newMethod) {
+
+        if (!oldMethod.getName().equals(newMethod.getName()))
+            return false;
+
+        if (oldMethod.getAccessFlags() != newMethod.getAccessFlags())
+            return false;
+
+        if (!oldMethod.getReturnType().equals(newMethod.getReturnType()))
+            return false;
+
+        if (!isSameAnnotations(oldMethod.getAnnotations(),newMethod.getAnnotations()))
+            return false;
+
+	    return true;
+    }
+
+
+
+	public boolean compare(List<File> oldDexFileList, List<File> newDexFileList) {
+
+        Set<DexBackedDexFile> oldDexList = changeDex(oldDexFileList);
+        Set<DexBackedDexFile> newDexList = changeDex(newDexFileList);
+
+        Set<DexBackedClassDef> oldClassDefList = new HashSet<>();
+        Set<DexBackedClassDef> newClassDefList = new HashSet<>();
+
+        for (DexBackedDexFile dexBackedDexFile : oldDexList){
+            oldClassDefList.addAll(dexBackedDexFile.getClasses());
+        }
+
+        for (DexBackedDexFile dexBackedDexFile : newDexList){
+            newClassDefList.addAll(dexBackedDexFile.getClasses());
+        }
+
+        for (DexBackedClassDef newDexBackedClassDef : newClassDefList){
+            boolean isSame = false;
+            for (DexBackedClassDef oldDexBackedClassDef : oldClassDefList){
+                if(newDexBackedClassDef.getType().equals(oldDexBackedClassDef.getType())){
+                    if (!isSameClassDef(oldDexBackedClassDef,newDexBackedClassDef))
+                        isSame = false;
+                    else
+                        isSame = true;
                 }
             }
+            if (!isSame)
+                changeClassList.add(new DexClassInfo(newDexBackedClassDef));
         }
+
 		return false;
 	}
 
 
     public static final class DexClassInfo {
-        public ClassDef classDef = null;
-        public Dex owner = null;
+        private DexBackedClassDef dexBackedClassDef;
 
-        public DexClassInfo(Dex owner,ClassDef classDef ){
-            this.owner = owner;
-            this.classDef = classDef;
+        public DexClassInfo(DexBackedClassDef dexBackedClassDef){
+            this.dexBackedClassDef = dexBackedClassDef;
         }
     }
 }

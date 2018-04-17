@@ -24,7 +24,7 @@ public class main {
 //		apkComparator.compare(args[0], args[1]);
 
 		ApkComparator apkComparator = new ApkComparator();
-		apkComparator.compare("..\\testapk\\new.apk", "..\\testapk\\old.apk");
+		apkComparator.compare( "..\\testapk\\old.apk","..\\testapk\\new.apk");
 	}
 	
 	
