@@ -1,5 +1,6 @@
 package com.github.wkigen.epimetheus.EpimetheusToolLib;
 
+import com.github.wkigen.epimetheus.EpimetheusToolLib.builder.PatchBuilder;
 import com.github.wkigen.epimetheus.EpimetheusToolLib.comparator.ApkComparator;
 import org.jf.dexlib2.writer.builder.DexBuilder;
 
@@ -25,6 +26,10 @@ public class main {
 
 		ApkComparator apkComparator = new ApkComparator();
 		apkComparator.compare( "..\\testapk\\old.apk","..\\testapk\\new.apk");
+
+		PatchBuilder patchBuilder = new PatchBuilder();
+		patchBuilder.OutPutPatch("..\\").Version("1.0.1").DexBuilder(apkComparator.dexComparator.getChangeClassList()).Build();
+
 	}
 	
 	

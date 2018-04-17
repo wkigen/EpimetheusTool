@@ -1,13 +1,12 @@
 package com.github.wkigen.epimetheus.EpimetheusToolLib.utils;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.InputStream;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+import java.util.zip.ZipOutputStream;
 
 
 public class Utils {
@@ -44,6 +43,61 @@ public class Utils {
                 pathFile.delete();
             }
         }
+    }
+
+    private static void compress(ZipOutputStream zipOutputStream,BufferedOutputStream bufferedOutputStream,File sourceFile,String base) throws Exception {
+        if(sourceFile.isDirectory()) {
+            File[] flist = sourceFile.listFiles();
+            if(flist.length == 0 ){
+                zipOutputStream.putNextEntry(  new ZipEntry(base+"/") );
+            } else {
+                for(File file : flist){
+                    compress(zipOutputStream,bufferedOutputStream,file,base+"/"+file.getName());
+                }
+            }
+        }else{
+            zipOutputStream.putNextEntry( new ZipEntry(base) );
+            FileInputStream fos = new FileInputStream(sourceFile);
+            BufferedInputStream bis = new BufferedInputStream(fos);
+            int count = 0;
+            byte[] buffer=new byte[1024];
+            while((count = bis.read(buffer,0,1024))!=-1){
+                zipOutputStream.write(buffer, 0, count);
+            }
+            bis.close();
+            fos.close();
+        }
+    }
+
+
+    public static void zipPatch(String zipSouPath,String zipDesPath){
+        ZipOutputStream zipOutputStream = null;
+        BufferedOutputStream bufferedOutputStream = null;
+        try{
+            File souFile = new File(zipSouPath);
+            if (!souFile.exists())
+                return;
+            File desFile = new File(zipDesPath);
+            if (!desFile.exists())
+                desFile.delete();
+
+            zipOutputStream = new ZipOutputStream( new FileOutputStream(zipDesPath));
+            bufferedOutputStream = new BufferedOutputStream(zipOutputStream);
+
+            compress(zipOutputStream,bufferedOutputStream,souFile,souFile.getName());
+        }catch (Exception e){
+
+        }finally {
+            try {
+                if (zipOutputStream != null)
+                    zipOutputStream.close();
+                if (bufferedOutputStream != null)
+                    bufferedOutputStream.close();
+            }catch (Exception e){
+
+            }
+        }
+
     }
 
     public static void unZipPatch(String zipPath, String unZipPath){

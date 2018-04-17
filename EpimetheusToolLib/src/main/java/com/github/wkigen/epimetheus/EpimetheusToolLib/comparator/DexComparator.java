@@ -4,6 +4,8 @@ import com.sun.org.apache.bcel.internal.generic.IF_ACMPEQ;
 import org.jf.dexlib2.DexFileFactory;
 import org.jf.dexlib2.dexbacked.*;
 import org.jf.dexlib2.iface.Annotation;
+import org.jf.dexlib2.iface.MethodParameter;
+import org.jf.dexlib2.iface.instruction.Instruction;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -17,9 +19,11 @@ public class DexComparator {
 
     private final Set<DexClassInfo> changeClassList = new HashSet<>();
 
-	public DexComparator() {
+	public DexComparator() { }
 
-	}
+	public Set<DexClassInfo> getChangeClassList(){
+	    return changeClassList;
+    }
 
 	private Set<DexBackedDexFile> changeDex(List<File> dexFileList){
         Set<DexBackedDexFile> dexBackedDexFiles = new HashSet<>();
@@ -35,6 +39,9 @@ public class DexComparator {
 
 
     public boolean isSameClassDef(DexBackedClassDef oldClassDef,DexBackedClassDef newClassDef){
+
+	    if(oldClassDef.getType().contains("Patch"))
+            oldClassDef.getType().contains("Patch");
 
         if (!oldClassDef.getType().equals(newClassDef.getType()))
             return false;
@@ -217,12 +224,68 @@ public class DexComparator {
         if (!isSameAnnotations(oldMethod.getAnnotations(),newMethod.getAnnotations()))
             return false;
 
+        if (!isSameMethodParameter(oldMethod.getParameters(),newMethod.getParameters()))
+            return false;
+
+//        if (!isSameCode(oldMethod.getImplementation(),newMethod.getImplementation()))
+//            return false;
+
+	    return true;
+    }
+
+    public boolean isSameMethodParameter(List<? extends MethodParameter> oldParameterList,List<? extends MethodParameter> newParameterList) {
+
+	    if (oldParameterList.size() != newParameterList.size())
+	        return false;
+
+	    for (int i=0;i<oldParameterList.size();i++){
+
+            MethodParameter oldMethodParameter = oldParameterList.get(i);
+            MethodParameter newMethodParameter = oldParameterList.get(i);
+
+	        if (!oldMethodParameter.getType().equals(newMethodParameter.getType()))
+	            return false;
+
+	        if (!isSameAnnotations(oldMethodParameter.getAnnotations(),newMethodParameter.getAnnotations()))
+	            return false;
+
+        }
+
 	    return true;
     }
 
 
+    public boolean isSameCode(DexBackedMethodImplementation oldImplementation,DexBackedMethodImplementation newImplementation) {
 
-	public boolean compare(List<File> oldDexFileList, List<File> newDexFileList) {
+	    if (oldImplementation.getRegisterCount() != newImplementation.getRegisterCount())
+	        return false;
+
+	    List<Instruction> oldInstructionList = new ArrayList<>();
+        List<Instruction> newInstructionList = new ArrayList<>();
+
+        for (Instruction instruction:oldImplementation.getInstructions()){
+            oldInstructionList.add(instruction);
+        }
+        for (Instruction instruction:newImplementation.getInstructions()){
+            newInstructionList.add(instruction);
+        }
+
+        if (oldInstructionList.size() != newInstructionList.size())
+            return false;
+
+        for (int i = 0; i < oldInstructionList.size();i++ ){
+            Instruction oldInstruction = oldInstructionList.get(i);
+            Instruction newInstruction = newInstructionList.get(i);
+
+            if (oldInstruction.getOpcode().name.equals(newInstruction.getOpcode().name))
+                return false;
+        }
+
+	    return true;
+    }
+
+
+	public void compare(List<File> oldDexFileList, List<File> newDexFileList) {
 
         Set<DexBackedDexFile> oldDexList = changeDex(oldDexFileList);
         Set<DexBackedDexFile> newDexList = changeDex(newDexFileList);
@@ -246,18 +309,16 @@ public class DexComparator {
                         isSame = false;
                     else
                         isSame = true;
+                    break;
                 }
             }
             if (!isSame)
                 changeClassList.add(new DexClassInfo(newDexBackedClassDef));
         }
-
-		return false;
 	}
 
-
     public static final class DexClassInfo {
-        private DexBackedClassDef dexBackedClassDef;
+        public DexBackedClassDef dexBackedClassDef;
 
         public DexClassInfo(DexBackedClassDef dexBackedClassDef){
             this.dexBackedClassDef = dexBackedClassDef;
