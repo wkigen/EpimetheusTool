@@ -1,6 +1,7 @@
 package com.github.wkigen.epimetheus.EpimetheusToolLib.comparator;
 
 import com.github.wkigen.epimetheus.EpimetheusToolLib.builder.PatchBuilder;
+import com.github.wkigen.epimetheus.EpimetheusToolLib.common.Constant;
 import com.github.wkigen.epimetheus.EpimetheusToolLib.utils.Log;
 import com.github.wkigen.epimetheus.EpimetheusToolLib.utils.Utils;
 import java.io.File;
@@ -26,12 +27,11 @@ public class ApkComparator {
 		}
 
 		try {
-			final String outPath = "../cache/";
-			Utils.unZipPatch(oldApkFile.getAbsolutePath(),outPath+"old");
-			Utils.unZipPatch(newApkFile.getAbsolutePath(),outPath+"new");
+			Utils.unZipPatch(oldApkFile.getAbsolutePath(),Constant.OutPutCache+"old");
+			Utils.unZipPatch(newApkFile.getAbsolutePath(),Constant.OutPutCache+"new");
 
-			List<File> oldDexFile = Utils.findFils(new File(outPath+"old"),"classes",".dex");
-			List<File> newDexFile = Utils.findFils(new File(outPath+"new"),"classes",".dex");
+			List<File> oldDexFile = Utils.findFils(new File(Constant.OutPutCache+"old"),"classes",Constant.DexEndFix);
+			List<File> newDexFile = Utils.findFils(new File(Constant.OutPutCache+"new"),"classes",Constant.DexEndFix);
 
 			dexComparator.compare(oldDexFile,newDexFile);
 

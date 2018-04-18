@@ -1,5 +1,6 @@
 package com.github.wkigen.epimetheus.EpimetheusToolLib.builder;
 
+import com.github.wkigen.epimetheus.EpimetheusToolLib.common.Constant;
 import com.github.wkigen.epimetheus.EpimetheusToolLib.comparator.DexComparator;
 import com.github.wkigen.epimetheus.EpimetheusToolLib.utils.Log;
 import com.github.wkigen.epimetheus.EpimetheusToolLib.utils.Utils;
@@ -30,8 +31,6 @@ public class PatchBuilder {
     private final static String PatchPreFix = "patch";
     private final static String PatchEndFix = ".patch";
     private final static String PatchConfig = "patch.xml";
-    private final static String DexEndFix = ".dex";
-    private final static String OutPutPath = "../cache/patch/";
 
     private String version = "1.0.0";
     private Set<DexComparator.DexClassInfo> classList;
@@ -98,7 +97,7 @@ public class PatchBuilder {
                     classDef.getInterfaces(),classDef.getSourceFile(),classDef.getAnnotations(),builderFields,builderMethods);
         }
 
-        File dest = new File(OutPutPath+PatchPreFix+ver+DexEndFix);
+        File dest = new File(Constant.OutPutPath+PatchPreFix+ver+Constant.DexEndFix);
         FileDataStore fileDataStore = new FileDataStore(dest);
         builder.writeTo(fileDataStore);
     }
@@ -113,7 +112,7 @@ public class PatchBuilder {
             outputFormat.setIndent(true);
             outputFormat.setIndent("    ");
             outputFormat.setNewlines(true);
-            xmlWriter = new XMLWriter(new FileWriter(new File(OutPutPath+PatchConfig)),outputFormat);
+            xmlWriter = new XMLWriter(new FileWriter(new File(Constant.OutPutPath+PatchConfig)),outputFormat);
 
             Document document = DocumentHelper.createDocument();
 
@@ -151,7 +150,7 @@ public class PatchBuilder {
     public void Build(){
 
         try{
-            File outPutPathFile = new File(OutPutPath);
+            File outPutPathFile = new File(Constant.OutPutPath);
             if (outPutPathFile.exists())
                 Utils.deleteFilesInDirectory(outPutPathFile);
             else
@@ -162,7 +161,7 @@ public class PatchBuilder {
             buildDex(ver);
             buildConfig(ver);
 
-            Utils.zipPatch(OutPutPath,outPutPatch+PatchPreFix+ver+PatchEndFix);
+            Utils.zipPatch(Constant.OutPutPath,outPutPatch+PatchPreFix+ver+PatchEndFix);
         }catch (Exception e){
             Log.print(e.getMessage());
         }
