@@ -9,7 +9,7 @@ import java.util.List;
 
 public class ApkComparator {
 
-	public DexComparator dexComparator = new DexComparator();
+	public DexComparator dexComparator ;
 
 	public void compare(String oldApkPath,String newApkPatch) {
 		
@@ -33,7 +33,8 @@ public class ApkComparator {
 			List<File> oldDexFile = Utils.findFils(new File(Constant.OutPutCache+"old"),"classes",Constant.DexEndFix);
 			List<File> newDexFile = Utils.findFils(new File(Constant.OutPutCache+"new"),"classes",Constant.DexEndFix);
 
-			dexComparator.compare(oldDexFile,newDexFile);
+			dexComparator = new DexComparator(oldDexFile,newDexFile);
+			dexComparator.compare();
 
 		} catch (Exception e) {
 			Log.print(e.getMessage());
