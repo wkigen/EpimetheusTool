@@ -31,16 +31,15 @@ public class Utils {
         return files;
     }
 
-    public static void deleteFiles(File pathFile){
+    public static void deleteFilesInDirectory(File pathFile){
         if (pathFile.exists()){
             if (pathFile.isFile()){
                 pathFile.delete();
             }else if (pathFile.isDirectory()){
                 String[] children = pathFile.list();
                 for (int i=0; i<children.length; i++) {
-                    deleteFiles(new File(pathFile,children[i]));
+                    deleteFilesInDirectory(new File(pathFile,children[i]));
                 }
-                pathFile.delete();
             }
         }
     }
@@ -84,7 +83,10 @@ public class Utils {
             zipOutputStream = new ZipOutputStream( new FileOutputStream(zipDesPath));
             bufferedOutputStream = new BufferedOutputStream(zipOutputStream);
 
-            compress(zipOutputStream,bufferedOutputStream,souFile,souFile.getName());
+            File[] flist = souFile.listFiles();
+            for(File file : flist){
+                compress(zipOutputStream,bufferedOutputStream,file,file.getName());
+            }
         }catch (Exception e){
 
         }finally {
@@ -97,7 +99,6 @@ public class Utils {
 
             }
         }
-
     }
 
     public static void unZipPatch(String zipPath, String unZipPath){
@@ -108,10 +109,10 @@ public class Utils {
             zipFile =  new ZipFile(new File(zipPath));
             pathFile = new File(unZipPath);
 
-            deleteFiles(pathFile);
-
             if (!pathFile.exists())
                 pathFile.mkdirs();
+            else
+                deleteFilesInDirectory(pathFile);
 
             InputStream in = null;
             FileOutputStream  out = null;

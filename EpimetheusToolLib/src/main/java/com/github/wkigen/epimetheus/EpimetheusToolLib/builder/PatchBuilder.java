@@ -3,6 +3,10 @@ package com.github.wkigen.epimetheus.EpimetheusToolLib.builder;
 import com.github.wkigen.epimetheus.EpimetheusToolLib.comparator.DexComparator;
 import com.github.wkigen.epimetheus.EpimetheusToolLib.utils.Log;
 import com.github.wkigen.epimetheus.EpimetheusToolLib.utils.Utils;
+import org.dom4j.DocumentHelper;
+import org.dom4j.Element;
+import org.dom4j.io.OutputFormat;
+import org.dom4j.io.XMLWriter;
 import org.jf.dexlib2.builder.BuilderMutableMethodImplementation;
 import org.jf.dexlib2.dexbacked.DexBackedClassDef;
 import org.jf.dexlib2.iface.Field;
@@ -12,8 +16,10 @@ import org.jf.dexlib2.writer.builder.BuilderField;
 import org.jf.dexlib2.writer.builder.BuilderMethod;
 import org.jf.dexlib2.writer.builder.DexBuilder;
 import org.jf.dexlib2.writer.io.FileDataStore;
+import org.dom4j.Document;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -23,12 +29,14 @@ public class PatchBuilder {
 
     private final static String PatchPreFix = "patch";
     private final static String PatchEndFix = ".patch";
+    private final static String PatchConfig = "patch.xml";
     private final static String DexEndFix = ".dex";
     private final static String OutPutPath = "../cache/patch/";
 
     private String version = "1.0.0";
     private Set<DexComparator.DexClassInfo> classList;
     private String outPutPatch = "";
+    private boolean canHot = true;
 
     public PatchBuilder(){
 
@@ -49,8 +57,7 @@ public class PatchBuilder {
         return this;
     }
 
-    private void buildDex() throws IOException {
-        final String ver = version.replace(".","");
+    private void buildDex(final String ver) throws IOException {
 
         DexBuilder builder = DexBuilder.makeDexBuilder();
         for (DexComparator.DexClassInfo dexClassInfo : classList){
@@ -96,17 +103,64 @@ public class PatchBuilder {
         builder.writeTo(fileDataStore);
     }
 
+    private void buildConfig(final String ver){
+
+        XMLWriter xmlWriter = null;
+        try{
+            OutputFormat outputFormat = OutputFormat.createPrettyPrint();
+            outputFormat.setEncoding("UTF-8");
+
+            outputFormat.setIndent(true);
+            outputFormat.setIndent("    ");
+            outputFormat.setNewlines(true);
+            xmlWriter = new XMLWriter(new FileWriter(new File(OutPutPath+PatchConfig)),outputFormat);
+
+            Document document = DocumentHelper.createDocument();
+
+            Element rootElement = document.addElement("patch");
+
+            Element versionElement = rootElement.addElement("version");
+            versionElement.addText(version);
+
+            Element patchNameElement = rootElement.addElement("patch_name");
+            patchNameElement.addText(PatchPreFix+ver);
+
+            Element canHotElement = rootElement.addElement("can_hot");
+            canHotElement.addText(canHot?"true":"false");
+
+            for (DexComparator.DexClassInfo dexClassInfo : classList){
+                String className = dexClassInfo.dexBackedClassDef.getType().replace("/",".");
+                className = className.substring(1,className.length()-1);
+                Element classElement = rootElement.addElement("class");
+                classElement.addText(className);
+            }
+
+            xmlWriter.write(document);
+        }catch (Exception e){
+
+        }finally {
+            try {
+                if (xmlWriter != null)
+                    xmlWriter.close();
+            }catch (Exception e){
+
+            }
+        }
+    }
+
     public void Build(){
 
         try{
             File outPutPathFile = new File(OutPutPath);
             if (outPutPathFile.exists())
-                Utils.deleteFiles(outPutPathFile);
-            outPutPathFile.mkdir();
+                Utils.deleteFilesInDirectory(outPutPathFile);
+            else
+                outPutPathFile.mkdir();
 
             final String ver = version.replace(".","");
 
-            buildDex();
+            buildDex(ver);
+            buildConfig(ver);
 
             Utils.zipPatch(OutPutPath,outPutPatch+PatchPreFix+ver+PatchEndFix);
         }catch (Exception e){

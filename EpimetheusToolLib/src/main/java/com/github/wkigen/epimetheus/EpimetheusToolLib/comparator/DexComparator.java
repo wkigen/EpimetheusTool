@@ -1,6 +1,5 @@
 package com.github.wkigen.epimetheus.EpimetheusToolLib.comparator;
 
-import com.sun.org.apache.bcel.internal.generic.IF_ACMPEQ;
 import org.jf.dexlib2.DexFileFactory;
 import org.jf.dexlib2.dexbacked.*;
 import org.jf.dexlib2.iface.Annotation;
