@@ -1,10 +1,10 @@
 package com.github.wkigen.epimetheus.EpimetheusToolLib.comparator;
 
+import com.github.wkigen.epimetheus.EpimetheusToolLib.utils.Log;
 import org.jf.dexlib2.DexFileFactory;
 import org.jf.dexlib2.dexbacked.*;
 import org.jf.dexlib2.iface.Annotation;
 import org.jf.dexlib2.iface.MethodParameter;
-import org.jf.dexlib2.iface.instruction.Instruction;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -17,14 +17,28 @@ import java.util.Set;
 public class DexComparator {
 
     private final Set<DexClassInfo> changeClassList = new HashSet<>();
+    private Set<DexBackedClassDef> oldClassDefList = new HashSet<>();
+    private Set<DexBackedClassDef> newClassDefList = new HashSet<>();
 
-	public DexComparator() { }
+	public DexComparator(List<File> oldDexFileList, List<File> newDexFileList) {
+
+        Set<DexBackedDexFile> oldDexList = loadDexFile(oldDexFileList);
+        Set<DexBackedDexFile> newDexList = loadDexFile(newDexFileList);
+
+        for (DexBackedDexFile dexBackedDexFile : oldDexList){
+            oldClassDefList.addAll(dexBackedDexFile.getClasses());
+        }
+
+        for (DexBackedDexFile dexBackedDexFile : newDexList){
+            newClassDefList.addAll(dexBackedDexFile.getClasses());
+        }
+    }
 
 	public Set<DexClassInfo> getChangeClassList(){
 	    return changeClassList;
     }
 
-	private Set<DexBackedDexFile> changeDex(List<File> dexFileList){
+	private Set<DexBackedDexFile> loadDexFile(List<File> dexFileList){
         Set<DexBackedDexFile> dexBackedDexFiles = new HashSet<>();
         try {
             for (File file : dexFileList){
@@ -38,9 +52,6 @@ public class DexComparator {
 
 
     public boolean isSameClassDef(DexBackedClassDef oldClassDef,DexBackedClassDef newClassDef){
-
-	    if(oldClassDef.getType().contains("Patch"))
-            oldClassDef.getType().contains("Patch");
 
         if (!oldClassDef.getType().equals(newClassDef.getType()))
             return false;
@@ -226,8 +237,13 @@ public class DexComparator {
         if (!isSameMethodParameter(oldMethod.getParameters(),newMethod.getParameters()))
             return false;
 
-//        if (!isSameCode(oldMethod.getImplementation(),newMethod.getImplementation()))
-//            return false;
+        try{
+            InstructionComparator instructionComparator = new InstructionComparator(oldMethod,newMethod);
+            if(!instructionComparator.compare())
+                return false;
+        }catch (Exception e){
+            Log.print(e.getMessage());
+        }
 
 	    return true;
     }
@@ -247,59 +263,12 @@ public class DexComparator {
 
 	        if (!isSameAnnotations(oldMethodParameter.getAnnotations(),newMethodParameter.getAnnotations()))
 	            return false;
-
         }
 
 	    return true;
     }
 
-
-    public boolean isSameCode(DexBackedMethodImplementation oldImplementation,DexBackedMethodImplementation newImplementation) {
-
-	    if (oldImplementation.getRegisterCount() != newImplementation.getRegisterCount())
-	        return false;
-
-	    List<Instruction> oldInstructionList = new ArrayList<>();
-        List<Instruction> newInstructionList = new ArrayList<>();
-
-        for (Instruction instruction:oldImplementation.getInstructions()){
-            oldInstructionList.add(instruction);
-        }
-        for (Instruction instruction:newImplementation.getInstructions()){
-            newInstructionList.add(instruction);
-        }
-
-        if (oldInstructionList.size() != newInstructionList.size())
-            return false;
-
-        for (int i = 0; i < oldInstructionList.size();i++ ){
-            Instruction oldInstruction = oldInstructionList.get(i);
-            Instruction newInstruction = newInstructionList.get(i);
-
-            if (oldInstruction.getOpcode().name.equals(newInstruction.getOpcode().name))
-                return false;
-        }
-
-	    return true;
-    }
-
-
-	public void compare(List<File> oldDexFileList, List<File> newDexFileList) {
-
-        Set<DexBackedDexFile> oldDexList = changeDex(oldDexFileList);
-        Set<DexBackedDexFile> newDexList = changeDex(newDexFileList);
-
-        Set<DexBackedClassDef> oldClassDefList = new HashSet<>();
-        Set<DexBackedClassDef> newClassDefList = new HashSet<>();
-
-        for (DexBackedDexFile dexBackedDexFile : oldDexList){
-            oldClassDefList.addAll(dexBackedDexFile.getClasses());
-        }
-
-        for (DexBackedDexFile dexBackedDexFile : newDexList){
-            newClassDefList.addAll(dexBackedDexFile.getClasses());
-        }
-
+	public void compare() {
         for (DexBackedClassDef newDexBackedClassDef : newClassDefList){
             boolean isSame = false;
             for (DexBackedClassDef oldDexBackedClassDef : oldClassDefList){
