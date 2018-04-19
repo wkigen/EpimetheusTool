@@ -1,9 +1,11 @@
 @echo off
-set /p ouputDir=ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½Ä¿Â¼:
-set /p version=ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½æ±¾ï¿½ï¿½:
+set /p oldApk=ÇëÊäÈë¾É°æ±¾apkÂ·¾¶:
+set /p newApk=ÇëÊäÈëĞÂ°æ±¾apkÂ·¾¶:
+set /p ouputDir=ÇëÊäÈëÊä³öÄ¿Â¼:
+set /p version=ÇëÊäÈë°æ±¾ºÅ:
 
-echo ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½É²ï¿½ï¿½ï¿½...
+echo ÕıÔÚÉú³É²¹¶¡...
 java -jar EpimetheusToolLib.jar %oldApk% %newApk% %ouputDir% %version%
-echo ï¿½ï¿½ï¿½ï¿½ï¿½É²ï¿½ï¿½ï¿½
+echo ÒÑÉú³É²¹¶¡
 
 pause
