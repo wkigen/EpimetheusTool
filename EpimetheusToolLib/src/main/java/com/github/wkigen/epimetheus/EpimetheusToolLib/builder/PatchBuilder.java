@@ -10,9 +10,11 @@ import org.dom4j.io.OutputFormat;
 import org.dom4j.io.XMLWriter;
 import org.jf.dexlib2.builder.BuilderMutableMethodImplementation;
 import org.jf.dexlib2.dexbacked.DexBackedClassDef;
+import org.jf.dexlib2.dexbacked.DexBackedMethod;
 import org.jf.dexlib2.iface.Field;
 import org.jf.dexlib2.iface.Method;
 import org.jf.dexlib2.iface.MethodImplementation;
+import org.jf.dexlib2.iface.MethodParameter;
 import org.jf.dexlib2.writer.builder.BuilderField;
 import org.jf.dexlib2.writer.builder.BuilderMethod;
 import org.jf.dexlib2.writer.builder.DexBuilder;
@@ -33,7 +35,7 @@ public class PatchBuilder {
     private final static String PatchConfig = "patch.xml";
 
     private String version = "1.0.0";
-    private Set<DexComparator.DexClassInfo> classList;
+    private Set<DexComparator.FixClassInfo> classList;
     private String outPutPatch = "";
     private boolean canHot = true;
 
@@ -51,7 +53,7 @@ public class PatchBuilder {
         return this;
     }
 
-    public PatchBuilder DexBuilder(Set<DexComparator.DexClassInfo> classList){
+    public PatchBuilder DexBuilder(Set<DexComparator.FixClassInfo> classList){
         this.classList = classList;
         return this;
     }
@@ -59,8 +61,10 @@ public class PatchBuilder {
     private void buildDex(final String ver) throws IOException {
 
         DexBuilder builder = DexBuilder.makeDexBuilder();
-        for (DexComparator.DexClassInfo dexClassInfo : classList){
-            DexBackedClassDef classDef = dexClassInfo.dexBackedClassDef;
+        for (DexComparator.FixClassInfo fixClassInfo : classList){
+            if (!fixClassInfo.canHot && canHot)
+                canHot = false;
+            DexBackedClassDef classDef = fixClassInfo.fixClassDef;
 
             List<BuilderField> builderFields = new ArrayList<>();
             for (Field field : classDef.getFields()) {
@@ -127,11 +131,17 @@ public class PatchBuilder {
             Element canHotElement = rootElement.addElement("can_hot");
             canHotElement.addText(canHot?"true":"false");
 
-            for (DexComparator.DexClassInfo dexClassInfo : classList){
-                String className = dexClassInfo.dexBackedClassDef.getType().replace("/",".");
-                className = className.substring(1,className.length()-1);
+            for (DexComparator.FixClassInfo fixClassInfo : classList){
+                String className = Utils.type2ClassName(fixClassInfo.fixClassDef.getType());
                 Element classElement = rootElement.addElement("class");
-                classElement.addText(className);
+                classElement.addElement("class_name").addText(className);
+                for (DexBackedMethod fixMethod :fixClassInfo.fixMethod){
+                    Element methodElement = classElement.addElement("method");
+                    methodElement.addElement("method_name").addText(fixMethod.getName());
+                    for (MethodParameter parameter : fixMethod.getParameters()){
+                        methodElement.addElement("method_param").addText(Utils.type2ClassName(parameter.getType()));
+                    }
+                }
             }
 
             xmlWriter.write(document);

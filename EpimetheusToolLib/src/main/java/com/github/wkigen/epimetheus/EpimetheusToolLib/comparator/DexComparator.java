@@ -16,7 +16,7 @@ import java.util.Set;
 
 public class DexComparator {
 
-    private final Set<DexClassInfo> changeClassList = new HashSet<>();
+    private final Set<FixClassInfo> changeClassList = new HashSet<>();
     private Set<DexBackedClassDef> oldClassDefList = new HashSet<>();
     private Set<DexBackedClassDef> newClassDefList = new HashSet<>();
 
@@ -34,7 +34,7 @@ public class DexComparator {
         }
     }
 
-	public Set<DexClassInfo> getChangeClassList(){
+	public Set<FixClassInfo> getChangeClassList(){
 	    return changeClassList;
     }
 
@@ -51,7 +51,7 @@ public class DexComparator {
     }
 
 
-    public boolean isSameClassDef(DexBackedClassDef oldClassDef,DexBackedClassDef newClassDef){
+    public boolean isSameClassDef(DexBackedClassDef oldClassDef,DexBackedClassDef newClassDef,FixClassInfo fixClassInfo){
 
         if (!oldClassDef.getType().equals(newClassDef.getType()))
             return false;
@@ -65,14 +65,10 @@ public class DexComparator {
         if (!isSameInterfaces(oldClassDef.getInterfaces(),newClassDef.getInterfaces()))
             return false;
 
-        if (!isSameFields(oldClassDef.getFields(),newClassDef.getFields()))
+        if (!isSameFields(oldClassDef.getFields(),newClassDef.getFields(),fixClassInfo))
             return false;
 
-
-        if (!isSameMethods(oldClassDef.getDirectMethods(),newClassDef.getDirectMethods()))
-            return false;
-
-        if (!isSameMethods(oldClassDef.getVirtualMethods(),newClassDef.getVirtualMethods()))
+        if (!isSameMethods(oldClassDef.getMethods(),newClassDef.getMethods(),fixClassInfo))
             return false;
 
         return true;
@@ -89,7 +85,7 @@ public class DexComparator {
 	    return true;
     }
 
-    public boolean isSameFields(Iterable<? extends DexBackedField> oldFieldsIter,Iterable<? extends DexBackedField> newFieldsIter) {
+    public boolean isSameFields(Iterable<? extends DexBackedField> oldFieldsIter,Iterable<? extends DexBackedField> newFieldsIter,FixClassInfo fixClassInfo) {
 
         List<DexBackedField> oldFields = new ArrayList<>();
         List<DexBackedField> newFields = new ArrayList<>();
@@ -101,8 +97,10 @@ public class DexComparator {
             newFields.add(newField);
         }
 
-        if (oldFields.size() != newFields.size())
+        if (oldFields.size() != newFields.size()) {
+            fixClassInfo.canHot = false;
             return false;
+        }
 
         for (int i = 0;i < oldFields.size();i++){
             if (!isSameField(oldFields.get(i),newFields.get(i)))
@@ -199,24 +197,32 @@ public class DexComparator {
 	    return true;
     }
 
-    public boolean isSameMethods(Iterable<? extends DexBackedMethod> oldMethodSet,Iterable<? extends DexBackedMethod> newMethodSet) {
+    public boolean isSameMethods(Iterable<? extends DexBackedMethod> oldMethodSet,Iterable<? extends DexBackedMethod> newMethodSet,FixClassInfo fixClassInfo) {
         List<DexBackedMethod> oldMethods = new ArrayList<>();
         List<DexBackedMethod> newMethods = new ArrayList<>();
 
         for (DexBackedMethod method : oldMethodSet){
             oldMethods.add(method);
         }
+
         for (DexBackedMethod method : newMethodSet){
             newMethods.add(method);
         }
 
-        if (oldMethods.size() != newMethods.size())
+        if (oldMethods.size() != newMethods.size()) {
+            fixClassInfo.canHot = false;
             return false;
+        }
 
         for (int i = 0;i <oldMethods.size();i++){
-            if (!isSameMethod(oldMethods.get(i),newMethods.get(i)))
-                return false;
+            if (!isSameMethod(oldMethods.get(i),newMethods.get(i))) {
+                fixClassInfo.fixMethod.add(oldMethods.get(i));
+            }
         }
+
+        if (fixClassInfo.fixMethod.size() > 0)
+            return false;
+
 	    return true;
     }
 
@@ -231,10 +237,10 @@ public class DexComparator {
         if (!oldMethod.getReturnType().equals(newMethod.getReturnType()))
             return false;
 
-        if (!isSameAnnotations(oldMethod.getAnnotations(),newMethod.getAnnotations()))
+        if (!isSameMethodParameter(oldMethod.getParameters(),newMethod.getParameters()))
             return false;
 
-        if (!isSameMethodParameter(oldMethod.getParameters(),newMethod.getParameters()))
+        if (!isSameAnnotations(oldMethod.getAnnotations(),newMethod.getAnnotations()))
             return false;
 
         try{
@@ -271,25 +277,30 @@ public class DexComparator {
 	public void compare() {
         for (DexBackedClassDef newDexBackedClassDef : newClassDefList){
             boolean isSame = false;
+            FixClassInfo fixClassInfo =  new FixClassInfo(newDexBackedClassDef);
             for (DexBackedClassDef oldDexBackedClassDef : oldClassDefList){
                 if(newDexBackedClassDef.getType().equals(oldDexBackedClassDef.getType())){
-                    if (!isSameClassDef(oldDexBackedClassDef,newDexBackedClassDef))
+                    if (!isSameClassDef(oldDexBackedClassDef,newDexBackedClassDef,fixClassInfo))
                         isSame = false;
                     else
                         isSame = true;
                     break;
                 }
             }
-            if (!isSame)
-                changeClassList.add(new DexClassInfo(newDexBackedClassDef));
+            if (!isSame) {
+                changeClassList.add(fixClassInfo);
+            }
         }
 	}
 
-    public static final class DexClassInfo {
-        public DexBackedClassDef dexBackedClassDef;
+    public static final class FixClassInfo {
+        public DexBackedClassDef fixClassDef;
+        public List<DexBackedMethod> fixMethod = new ArrayList<>();
+        public boolean canHot = true;
 
-        public DexClassInfo(DexBackedClassDef dexBackedClassDef){
-            this.dexBackedClassDef = dexBackedClassDef;
+        public FixClassInfo(DexBackedClassDef fixClassDef){
+            this.fixClassDef = fixClassDef;
         }
     }
+
 }
