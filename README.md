@@ -15,6 +15,10 @@
 使用：
 ---------
 
-java  -jar  EpimetheusToolLib.jar   old.apk   new.apk   outputDir   version
+create_patch.bat
+
+or
+
+java  -jar  EpimetheusToolLib.jar   old.apk   new.apk   outputDir   version
 
 
