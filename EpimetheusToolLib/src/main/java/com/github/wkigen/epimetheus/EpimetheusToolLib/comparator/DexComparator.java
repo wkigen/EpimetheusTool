@@ -288,6 +288,7 @@ public class DexComparator {
                 }
             }
             if (!isSame) {
+                Log.print(fixClassInfo);
                 changeClassList.add(fixClassInfo);
             }
         }

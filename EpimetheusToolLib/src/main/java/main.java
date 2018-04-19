@@ -1,5 +1,6 @@
 import com.github.wkigen.epimetheus.EpimetheusToolLib.builder.PatchBuilder;
 import com.github.wkigen.epimetheus.EpimetheusToolLib.comparator.ApkComparator;
+import com.github.wkigen.epimetheus.EpimetheusToolLib.utils.Log;
 import org.jf.dexlib2.writer.builder.DexBuilder;
 
 public class main {
@@ -19,12 +20,16 @@ public class main {
 			return;
 		}
 
+		Log.print("start compare");
+		Log.print("difference:");
 		ApkComparator apkComparator = new ApkComparator();
 		apkComparator.compare(args[0], args[1]);
+		Log.print("end compare");
 
+		Log.print("start build");
 		PatchBuilder patchBuilder = new PatchBuilder();
 		patchBuilder.OutPutPatch(args[2]).Version(args[3]).DexBuilder(apkComparator.dexComparator.getChangeClassList()).Build();
-
+		Log.print("end build");
 	}
 	
 	

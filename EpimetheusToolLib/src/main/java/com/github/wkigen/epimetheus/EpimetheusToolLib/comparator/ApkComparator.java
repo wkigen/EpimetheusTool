@@ -17,12 +17,12 @@ public class ApkComparator {
 		File newApkFile = new File(newApkPatch);
 		
 		if(!oldApkFile.exists()) {
-			System.out.printf("can not find the old apk");
+			System.out.printf("can not find the old apk\n");
 			return;
 		}
 		
 		if(!newApkFile.exists()) {
-			System.out.printf("can not find the new apk");
+			System.out.printf("can not find the new apk\n");
 			return;
 		}
 

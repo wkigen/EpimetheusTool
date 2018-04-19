@@ -49,6 +49,9 @@ public class PatchBuilder {
     }
 
     public PatchBuilder OutPutPatch(String outPutPatch){
+        if (!outPutPatch.endsWith("\\")&&!outPutPatch.endsWith("/")){
+            outPutPatch = outPutPatch + "/";
+        }
         this.outPutPatch = outPutPatch;
         return this;
     }
