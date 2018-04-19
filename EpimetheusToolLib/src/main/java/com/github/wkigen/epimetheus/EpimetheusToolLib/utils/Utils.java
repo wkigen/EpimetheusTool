@@ -155,4 +155,33 @@ public class Utils {
         }
     }
 
+    public static String type2ClassName(String type){
+        switch (type){
+            case "Z":
+                return "boolean";
+            case "B":
+                return "byte";
+            case "C":
+                return "char";
+            case "S":
+                return "short";
+            case "I":
+                return "int";
+            case "J":
+                return "long";
+            case "F":
+                return "float";
+            case "D":
+                return "double";
+            case "V":
+                return "void";
+             default:
+                if (type == null || type.length() < 2)
+                    return "";
+                 String ret = type.replace("/",".");
+                 ret = ret.substring(1,ret.length()-1);
+                 return ret;
+        }
+    }
+
 }
